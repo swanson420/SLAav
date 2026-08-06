@@ -70,3 +70,31 @@ A working instance was deployed to Replit and exercised end to end. Every claim 
 ### Automated test suite results (this session, live database)
 
 Beyond the manual API calls above, a full pytest suite (38 tests) was run directly against this live deployment:
+This includes an assertion-based check that the immutability trigger genuinely blocks an UPDATE on a ledger row (not just that an exception fires — the test re-reads the row afterward and confirms the data is unchanged), an independent recomputation of the SHA-256 hash chain to confirm it's deterministic given fixed inputs, and a dedicated failure-case suite confirming the API fails cleanly (404s, 422s, empty results) rather than crashing when given bad input — not just the happy path.
+
+---
+
+### What has been fixed and code-reviewed, but not yet exercised live
+
+- None outstanding as of this update — the two items previously listed here (HMAC-signed hash chain, API key enforcement) have both been wired in and confirmed live (see tests #16–19 above).
+
+---
+
+### What is explicitly NOT yet in place
+
+- No scheduled/automated trigger for the data refresh job — it was run manually for this test. A production deployment needs a scheduler.
+- No load testing (high request volume / throughput), no failure-injection testing beyond the API-level failure cases above (bad input, missing params, unknown records). Concurrent-write correctness on a single ticket is now tested (see #20–21 above) — load/throughput testing is a separate, still-open concern.
+- Security review (documented separately) has not been re-run against this specific deployed version.
+- Key rotation itself (the dual-key window `authority_secrets.py` is designed to support) has not been exercised — only single-key signing and single-key auth have been tested live.
+- External timestamp anchor is submitted but not yet Bitcoin-confirmed. Bitcoin block confirmation typically takes 1+ hours after submission; this is expected behavior of the underlying protocol, not a defect in the implementation. The confirmation-check code path itself has been verified correct (it accurately distinguishes "submitted" from "confirmed" rather than conflating them — an incorrect version of this check was caught and fixed during this session before being recorded as a passing result).
+- Published proof endpoint (an API route exposing the anchor for independent third-party verification) has not yet been built.
+
+---
+
+### Audit trail
+
+This package went through multiple flagged-and-reissued versions before reaching a verified state — that history is documented in full in the accompanying file trace, including specific defects found in each prior version and how they were resolved. Available on request for anyone who wants to see the full diligence trail rather than just the end state.
+
+---
+
+*This document reflects what was directly observed and tested. Any claim not marked "verified live" above should be treated as reviewed-but-unproven until independently tested.*
